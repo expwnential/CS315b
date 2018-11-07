@@ -1,0 +1,89 @@
+Let's look at the PBS script and code output. First, the PBS script:
+
+#!/bin/bash
+#PBS -l nodes=1
+#PBS -l ncpus=8
+#PBS -l walltime=00:05:00
+#PBS -d .
+
+regent edge.rg -p 1 -ll:cpu 1 -i images/earth.png
+regent edge.rg -p 2 -ll:cpu 2 -i images/earth.png
+regent edge.rg -p 4 -ll:cpu 4 -i images/earth.png
+regent edge.rg -p 8 -ll:cpu 8 -i images/earth.png
+
+
+The output for this script was:
+
+Gaussian smoothing took 0.640 sec.
+Sobel operator on x-axis took 0.468 sec.
+Sobel operator on y-axis took 0.469 sec.
+Non-maximum suppression took 0.398 sec.
+Total time: 2.054495 sec.
+Gaussian smoothing took 0.308 sec.
+Gaussian smoothing took 0.324 sec.
+Sobel operator on x-axis took 0.234 sec.
+Sobel operator on x-axis took 0.235 sec.
+Sobel operator on y-axis took 0.234 sec.
+Sobel operator on y-axis took 0.234 sec.
+Non-maximum suppression took 0.207 sec.
+Non-maximum suppression took 0.187 sec.
+Total time: 1.232292 sec.
+Gaussian smoothing took 0.153 sec.
+Gaussian smoothing took 0.163 sec.
+Gaussian smoothing took 0.163 sec.
+Gaussian smoothing took 0.167 sec.
+Sobel operator on x-axis took 0.118 sec.
+Sobel operator on x-axis took 0.118 sec.
+Sobel operator on x-axis took 0.118 sec.
+Sobel operator on x-axis took 0.118 sec.
+Sobel operator on y-axis took 0.117 sec.
+Sobel operator on y-axis took 0.117 sec.
+Sobel operator on y-axis took 0.117 sec.
+Sobel operator on y-axis took 0.117 sec.
+Non-maximum suppression took 0.107 sec.
+Non-maximum suppression took 0.108 sec.
+Non-maximum suppression took 0.090 sec.
+Non-maximum suppression took 0.098 sec.
+Total time: 0.832511 sec.
+Gaussian smoothing took 0.079 sec.
+Gaussian smoothing took 0.079 sec.
+Gaussian smoothing took 0.080 sec.
+Gaussian smoothing took 0.081 sec.
+Gaussian smoothing took 0.081 sec.
+Gaussian smoothing took 0.083 sec.
+Gaussian smoothing took 0.084 sec.
+Gaussian smoothing took 0.084 sec.
+Sobel operator on x-axis took 0.059 sec.
+Sobel operator on x-axis took 0.059 sec.
+Sobel operator on x-axis took 0.059 sec.
+Sobel operator on x-axis took 0.059 sec.
+Sobel operator on x-axis took 0.059 sec.
+Sobel operator on x-axis took 0.059 sec.
+Sobel operator on x-axis took 0.059 sec.
+Sobel operator on x-axis took 0.060 sec.
+Sobel operator on y-axis took 0.059 sec.
+Sobel operator on y-axis took 0.059 sec.
+Sobel operator on y-axis took 0.059 sec.
+Sobel operator on y-axis took 0.059 sec.
+Sobel operator on y-axis took 0.059 sec.
+Sobel operator on y-axis took 0.059 sec.
+Sobel operator on y-axis took 0.059 sec.
+Sobel operator on y-axis took 0.059 sec.
+Non-maximum suppression took 0.056 sec.
+Non-maximum suppression took 0.057 sec.
+Non-maximum suppression took 0.051 sec.
+Non-maximum suppression took 0.048 sec.
+Non-maximum suppression took 0.050 sec.
+Non-maximum suppression took 0.056 sec.
+Non-maximum suppression took 0.042 sec.
+Non-maximum suppression took 0.042 sec.
+Total time: 0.622884 sec.
+
+Doubling the number of processors did not halve the total run time, as expected. The speedups are as follows:
+1 processor --> 2 processors = 1.667x speedup
+1 processor --> 4 processors = 2.468x speedup
+1 processor --> 8 processors = 3.299x speedup 
+
+Doubling the number of processors did, however, roughly halve the run time of each operation. If one inspects the run time of, say, the smoothing operation, then one can see that the speedup of each operation is linear with the number of processors because the workload decrease is linear with the number of processors. 
+
+The reason for the sublinear speedup in total run time is because of the introduction of new necessary operations, i.e. the partitioning, communication, and data transfers.   
