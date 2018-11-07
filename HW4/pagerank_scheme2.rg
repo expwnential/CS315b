@@ -73,11 +73,11 @@ end
 task PageRank(r_pages : region(Page), r_links : region(Link(r_pages)), damp : double)
 where
   reads(r_pages.{rank, links}), reads(r_links.{source, dest}),
-  reads writes(r_pages.rank2)
+  reduces+(r_pages.rank2)
 do
   for link in r_links do
     link.dest.rank2 += damp * link.source.rank/link.source.links
-    c.printf("Updating link %d, Adding %f\n", [int64](link.dest),damp * link.source.rank/link.source.links);
+    --c.printf("Updating link %d, Adding %f\n", [int64](link.dest),damp * link.source.rank/link.source.links);
   end
 end
 
@@ -126,19 +126,18 @@ task toplevel()
   --       It is your choice how you allocate the elements in this region.
   --
   var r_links = region(ispace(ptr, config.num_links), Link(wild))
-  
+  initialize_graph(r_pages, r_links, config.damp, config.num_pages, config.input)  
   --
   -- TODO: Create partitions for links and pages.
   --       You can use as many partitions as you want.
   --
 
-  var link_edge = partition(equal, r_links, ispace(int1d, config.parallelism))
-  var page_edge = image(r_pages, link_edge, r_links.source) | image(r_pages, link_edge, r_links.dest)
+  --var link_edge = partition(equal, r_links, ispace(int1d, config.parallelism))
+  --var page_edge = image(r_pages, link_edge, r_links.source) | image(r_pages, link_edge, r_links.dest)
 
   var page_node = partition(equal, r_pages, ispace(int1d, config.parallelism)) 
-  var link_edge = image(r_links, page_node
+  var link_node = preimage(r_links, page_node, r_links.dest)
   -- Initialize the page graph from a file
-  initialize_graph(r_pages, r_links, config.damp, config.num_pages, config.input)
 
   var num_iterations = 0
   var converged = false
@@ -151,12 +150,11 @@ task toplevel()
     --       (and of course remove the break statement here.)
     --
     for zone in ispace(int1d, config.parallelism) do
-      PageRank(page_edge[zone], link_edge[zone], config.damp)
+      PageRank(page_node[zone], link_node[zone], config.damp)
     end
     __fence(__execution, __block) -- This blocks to make sure we only time the pagerank computation
 
     var error : double = 0
-    --This is the non-parallel version; only here for testing.
     --PageRank(r_pages, r_links, config.damp)
     --error = condition(r_pages, config.damp, config.num_pages)
     for zone in ispace(int1d, config.parallelism) do
@@ -164,7 +162,7 @@ task toplevel()
     end
     c.printf("%f\n",error)
 
-    converged = error < config.error_bound    
+    converged = error < (config.error_bound*config.error_bound)    
   end
   __fence(__execution, __block) -- This blocks to make sure we only time the pagerank computation
   var ts_stop = c.legion_get_current_time_in_micros()

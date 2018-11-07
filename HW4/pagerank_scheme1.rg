@@ -77,7 +77,7 @@ where
 do
   for link in r_links do
     link.dest.rank2 += damp * link.source.rank/link.source.links
-    c.printf("Updating link %d, Adding %f\n", [int64](link.dest),damp * link.source.rank/link.source.links);
+    --c.printf("Updating link %d, Adding %f\n", [int64](link.dest),damp * link.source.rank/link.source.links);
   end
 end
 
@@ -161,7 +161,7 @@ task toplevel()
     end
     c.printf("%f\n",error)
 
-    converged = error < config.error_bound    
+    converged = error < (config.error_bound*config.error_bound)    
   end
   __fence(__execution, __block) -- This blocks to make sure we only time the pagerank computation
   var ts_stop = c.legion_get_current_time_in_micros()
