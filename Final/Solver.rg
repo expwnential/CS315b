@@ -12,39 +12,51 @@ local cmath = terralib.includec("math.h")
 local PI = cmath.M_PI
 
 -- 2D vector type
-struct Vector2d
+struct Vector2D
 {
   x : double;
   y : double;
 }
 
 -- 3D vector type
-struct Vector3d
+struct Vector3D
 {
   x : double;
   y : double;
   z : double;
 }
 
-terra Vector2d:norm()
+terra Vector2D:norm()
   return sqrt(self.x * self.x + self.y * self.y)
 end
-terra Vector3d:norm()
+terra Vector3D:norm()
   return sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
 end
-terra Vector2d.metamethods.__div(v : Vector2d, c : double)
+terra Vector2D.metamethods.__div(v : Vector2D, c : double)
   return Vector2d { v.x / c, v.y / c }
 end
-terra Vector3d.metamethods.__div(v : Vector3d, c : double)
+terra Vector3D.metamethods.__div(v : Vector3D, c : double)
   return Vector3d { v.x / c, v.y / c, v.z / c }
 
--- Field space for Grid
-fspace Grid
+-- Field space for Grid, combine with F and G
+fspace Grid2D
 {
-  --original    : uint8;    -- Original pixel in 8-bit gray scale
   density       : double;   
-  velocity      : Vector3d; 
-  pressure      : uint8;   
+  mx            : double;
+  my            : double; 
+  energy        : double;
+   
+}
+
+fspace F(r_image : region(Grid)) {
+  mx : ptr(Grid2D.mx, r_image); --Pseudocode: Syntax?
+  mx   
+}
+
+
+fspace Link(r_pages : region(Page)) {
+  source : ptr(Page, r_pages);
+  dest : ptr(Page, r_pages);
 }
 
 task factorize2d(parallelism : int) : int2d
@@ -109,6 +121,14 @@ do
   return 1
 end
 
+task Stencil2D(r_image: region(ispace(int2d),Grid), dt : double)
+where
+  reads writes(r_image)
+do
+  var New : region(ispace(int2d),Grid) = r_image
+  for e in New do
+    New[e] = r_image[e] + dt* 
+
 task toplevel()
   var config : EdgeConfig
   config:initialize_from_command()
@@ -117,15 +137,14 @@ task toplevel()
   var size_image = png.get_image_size(config.filename_image)
   var r_image = region(ispace(int2d, size_image), Grid)
 
-  -- Create an equal partition of the interior image
+  -- Create an equal partition of the grid
   var p_private_colors = ispace(int2d, factorize2d(config.parallelism))
-  var p_private = partition(equal, r_interior, p_private_colors)
+  var p_private = partition(equal, r_image, p_private_colors)
 
   -- Create a halo partition for ghost access
   var c_halo = coloring.create()
   for color in p_private_colors do
     var bounds = p_private[color].bounds
-
     var halo_bounds : rect2d = {bounds.lo - {2,2}, bounds.hi + {2,2}}-- TODO: Calculate the correct bounds of the halo
     coloring.color_domain(c_halo, color, halo_bounds)
   end

@@ -73,12 +73,11 @@ end
 task PageRank(r_pages : region(Page), r_links : region(Link(r_pages)), damp : double)
 where
   reads(r_pages.{rank, links}), reads(r_links.{source, dest}),
-  reads writes(r_pages.rank2)
+  reduces+(r_pages.rank2)
 do
   for link in r_links do
     link.dest.rank2 += damp * link.source.rank/link.source.links
-    c.fprintf(c.stderr,"Updating link %d\n", [int64](link.dest));
-    c.fprintf(c.stderr,"Adding %f\n", damp * link.source.rank/link.source.links) 
+    c.printf("Updating link %d, Adding %f\n", [int64](link.dest),damp * link.source.rank/link.source.links);
   end
 end
 
@@ -127,7 +126,7 @@ task toplevel()
   --       It is your choice how you allocate the elements in this region.
   --
   var r_links = region(ispace(ptr, config.num_links), Link(wild))
-  
+  initialize_graph(r_pages, r_links, config.damp, config.num_pages, config.input)  
   --
   -- TODO: Create partitions for links and pages.
   --       You can use as many partitions as you want.
@@ -138,7 +137,6 @@ task toplevel()
 
   var page_node = partition(equal, r_pages, ispace(int1d, config.parallelism)) 
   -- Initialize the page graph from a file
-  initialize_graph(r_pages, r_links, config.damp, config.num_pages, config.input)
 
   var num_iterations = 0
   var converged = false
@@ -157,11 +155,11 @@ task toplevel()
 
     var error : double = 0
     --PageRank(r_pages, r_links, config.damp)
-    error = condition(r_pages, config.damp, config.error_bound)
-    --for zone in ispace(int1d, config.parallelism) do
-    --  error += condition(page_node[zone], config.damp, config.num_pages)
-    --end
-    c.fprintf(c.stderr,"%f\n",error)
+    --error = condition(r_pages, config.damp, config.num_pages)
+    for zone in ispace(int1d, config.parallelism) do
+      error += condition(page_node[zone], config.damp, config.num_pages)
+    end
+    c.printf("%f\n",error)
 
     converged = error < config.error_bound    
   end

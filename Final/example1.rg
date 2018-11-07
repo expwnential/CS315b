@@ -27,16 +27,23 @@ local c = regentlib.c
 
 task main()
      var sum: int2d = {5 , 6}
-     sum = sum % {4,4}
-     for s in ispace(int1d, 2) do
-       c.printf(sum[s])
-       var check : bool = sum[s] < 5
-       if check then
-	 c.printf("True")
-       else
-         c.printf("Wat")
-       end
-     c.printf("Result {%d, %d}\n",sum)
+     var a : double
+     var b : double
+     a = sum.x
+     b = sum.y
+
+     var A : bool = a > 4
+     var B : bool = b > 4
+     
+     if A then
+       c.printf("A True\n")
+     else
+       c.printf("Wat")
+     end
+     if B then
+       c.printf("B True\n")
+     else 
+       c.printf("Wat")
      end
 end
 

@@ -94,7 +94,7 @@ do
     for page in r_pages do
       err += (page.rank - page.rank2) * (page.rank - page.rank2)
     end
-    return err < bound
+    return err < (bound*bound)
 end
 
 task update(r_pages : region(Page), damp : double, pages : uint32)
